@@ -1,0 +1,22 @@
+SELECT
+xte.APPLICATION_ID , 
+xte.ENTITY_CODE ,
+xte.ENTITY_ID ,
+rt.TRANSACTION_ID , 
+xe.EVENT_ID ,
+xe.EVENT_TYPE_CODE,
+xe.EVENT_STATUS_CODE , 
+xe.PROCESS_STATUS_CODE,
+rt.TRANSACTION_DATE ,  
+xe.EVENT_DATE , 
+rt.*
+FROM 
+RCV_TRANSACTIONS                  rt , 
+XLA_EVENTS                        xe, 
+XLA.XLA_TRANSACTION_ENTITIES      xte 
+WHERE 1=1
+  AND xte.APPLICATION_ID       =  707
+  AND xte.ENTITY_CODE          = 'RCV_ACCOUNTING_EVENTS'
+  AND nvl(xte.SOURCE_ID_INT_1,-99)      =  rt.TRANSACTION_ID
+  AND xte.APPLICATION_ID       =  xe.APPLICATION_ID
+  AND xte.ENTITY_ID            =  xe.ENTITY_ID 

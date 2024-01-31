@@ -1,0 +1,114 @@
+1. 討論INV,OM,AR,GL,COST 上課順序 (有沒有那位IT有不能參與的時間?)
+2. 說明以下內容, IT應了解事項, 說明一次即可(不需要每一堂課的講師再重複說明)
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+[關於 Table Schema eTRM]
+※可使用'Eletronic Technical Reference Manual (eTRM)' Responsibility.
+   Reference Document: Oracle E-Business Suite Electronic Technical Reference Manual (eTRM), Release 12.2 and Release 12.1.3 (Doc ID 2850246.1)
+
+參考畫面：R122 Electronic Technical Reference Manual Responsibility.jpg
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+[關於 Open Interfaces/ APIs]
+※可以使用 'Integration Repository' 或 'Integrated SOA Gateway'  Responsibility 取得Interface說明
+   Reference Document : R12: How To Access API References via the Oracle Integration Repository (Doc ID 462586.1)
+
+參考畫面：
+a). R12 Integration Repository (Integrated SOA Gateway) Open Interface檢索.jpg
+b). R12 Integration Repository (Integrated SOA Gateway) API檢索.jpg
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+[關於客製/System Objects]
+※In 12.2 (and onwards) report, I see a checkbox to include data model changes that support Online Patching[3]. What are those changes?
+E-Business Suite Release 12.2 introduces several major new technologies and updates. 
+One of the features is Online Patching, which enables patches to EBS 12.2 to be applied while the system is running. 
+To support the Online Patching feature, there are thousands of automated data model upgrades made during the “online patching enablement” process as part of the EBS 12.2.0 upgrade. 
+Even though these changes are “valid data model changes”, they are not “interesting data model changes” and are filtered out from the report. 
+However, if you want to review the complete data model changes including the automated data model upgrades, you can select the checkbox located in the top of the report.
+
+FYI. The data model changes to support Online Patching include but not limited to:
+1. New ZD_EDITION_NAME column with default value is added to "seed data tables".
+2. New ZD_EDITION_NAME column is added to all unique indexes.
+     Fuly Remark: 
+     a). 對於ZD_EDITION_NAME 想了解, 可參考 https://stackoverflow.com/questions/48720022/oracle-applications-how-to-get-the-value-of-zd-edition-name
+     b). 主要使用於Online Patching
+     c). 抓apps Store Procedure 有用到ZD_EDITION_NAME 的程式(參考: R122 Store Procedure有ZD_EDITION_NAME的程式碼.xlsx),  一般的程式並不會用到此一欄位
+     d). 也就是一般客製程式, 不需要在where clause寫此一ZD_EDITION_NAME 的條件式
+
+3. New Editioning Views (called TABLE_NAME#) are added for regular tables. 
+     Fuly Remark:
+     a). Oracle規範原始table name要在29碼以內, Edition View多一個"#" 
+
+4. New triggers (called TABLE_NAME+) on the Editioning View are added.
+5. Trigger's base object type and name are changed to refer the editioning view instead of the direct table.
+
+6. User Defined Types that are referenced by tables are moved to the APPS_NE schema.
+7. Table columns based on User Defined Types now reference the type in APPS_NE schema.
+
+8. Synonyms that pointed to ordinary tables now point to the editioning view instead.
+
+9. Columns for regular tables are revised via new physical columns (called COLUMN_NAME#<n>; where <n> is a revision tag).
+     Fuly Remark:
+     a). Oracle規範客製table column可能會加#1, 所以Column Name要在28碼以內
+
+10.Global temporary tables are revised via new physical global temporary tables (called TABLE_NAME<n>; where <n> is a revision tag).
+
+參考文件：
+R12.2 Custom客製規範, 參考"(SA)R122 Create Table and Editioning View及客製規範.pdf"
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+[Others]
+※EBS Legal Entity/Ledger/Operating Unit/Inventory Organization架構以及所屬的Applications
+   LEGAL_ENTITY_ID ( 部份欄位是 LEGAL_ENTITY ):Payments
+   LEDGER_ID ( R11i 為 SET_OF_BOOKES_ID , 部份tables沒有改為LEDGER_ID; 假如仍然是SET_OF_BOOKS_ID或二個欄位都有, 要注意標準功能是否仍會寫入SET_OF_BOOKS_ID 欄位):GL/FA
+   ORG_ID : 大部份tables 的ORG_ID 指的是Operating Unit (OU) ID:PO/AP/OM/AR
+   ORGANIZATION_ID : 大部份tables 的ORGANIZATION_ID 指的是Inventory Organization ID:INV/BOM/WIP/COST
+
+
+※EBS Legal Entity/Ledger/Operating Unit/Inventory Organization架構Oracle View
+ALTER SESSION SET NLS_LANGUAGE = 'AMERICAN'
+        a). Inventory Organization往上串到Legal Entity：( view: ORG_ORGANIZATION_DEFINITIONS)
+              Inventory Organization: Organization_ID
+              Operating Unit(OU) : Operating_Unit
+              Ledger: Set_of_Books_ID
+              Legal Entity：Legal_Entity
+        b). Operating Unit(OU)往上串到Legal Entity：（view: HR_OPERATING_UNITS ) 
+              Operating Unit(OU) : Organization_ID
+              Ledger: Set_of_Books_ID 
+              Legal Entity：Default_Legal_Context_ID
+        c). Ledger往上串到Legal Entity：（view: GL_LEDGER_LE_V )  
+              Ledger: LEDGER_ID
+              Legal Entity: LEGAL_ENTITY_ID
+
+
+※Form 畫面找table
+    a). 工作列 Help / Record History, 可以查看目前游標所在位置的Table/View name (Oracle大部份用view name)
+    b). 要有Help/Diagnostic 功能, 必須System Profile 'Utilities:Diagnostics' 為'Yes' (請設定在User level; Examine可以修改資料, 絕不能開給一般users)
+
+ 
+※Web Page找table
+    a). 點選About This Page , "Business Component References Details" 點開, View Object找出可能的VO, 裏面會有select statement
+    b). 必須System Profile  'FND: Diagnostics 為'Yes' , 請設定在User level
+ 
+
+※Menu太多層, 一下子找不到程式掛在那裏? 或者有沒有這支程式, 可以用[Control+L] 將這個Responsibility的function都列示出來.
+
+
+※R122 DBA_POLICIES：Why are there differences in SELECT  FROM XLA_TRANSACTION_ENTITIES and SELECT FROM XLA.XLA_TRANSACTION_ENTITIES(ID 946314.1).pdf
+
+
+※ 設定環境變數：部份的View會綁OU擷取權限（大部份是PO/OM/AR/AP的View）
+　例如 select * from  oe_order_headers; 會抓不到資料,  在Toad, PL/SQL 等工具, 要先設定環境變數才能使用
+
+begin  
+  MO_GLOBAL.SET_POLICY_CONTEXT('S', <<<OU ID>> );  
+end;
+
+Example: 
+begin  
+  MO_GLOBAL.SET_POLICY_CONTEXT('S', ‘ '204' );  
+end;
+
+DBA_TAB_COLUMNS
+
+ 
